@@ -1,0 +1,13 @@
+---
+name: SwipeStripe Xero
+---
+
+Customer:
+  extensions:
+    - 'XeroExtension_Customer'
+Order:
+  extensions:
+    - 'XeroExtension_Order'
+Payment:
+  extensions:
+    - 'XeroExtension_Payment'

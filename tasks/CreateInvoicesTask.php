@@ -76,16 +76,15 @@ class RemoveDevOrdersTask extends BuildTask {
 			'FlatFeeTaxModification'
 		);
 		$baseCurrency = 'NZD';
+		$invoicePrefix = 'WEB-';
 
 
 		$invoices = array();
-		$orders = Order::get()->where(" \"XeroInvoiceID\" IS NULL");
+		// Orders that have not been sent to Xero and are completed
+		$orders = Order::get()->where(" \"XeroInvoiceID\" IS NULL AND \"Status\" != 'Cart'");
 		$i = 0;
 
 		if ($orders && $orders->exists()) foreach ($orders as $order) {
-
-			// TODO: Configuration values
-			$invoicePrefix = 'WEB-';
 
 			$invoices[$i]['Invoice'] = array(
 				'Type' => 'ACCREC',
@@ -114,7 +113,7 @@ class RemoveDevOrdersTask extends BuildTask {
 				$invoices[$i]['Invoice']['LineItems'][]['LineItem'] = array(
 					'Description' => $description,
 					'Quantity' => $item->Quantity,
-					'UnitAmount' => $item->Total()->getAmount(),
+					'UnitAmount' => $item->Price,
 					'AccountCode' => $defaultAccountCode,
 					'TaxType' => $defaultTaxType
 				);
@@ -147,30 +146,24 @@ class RemoveDevOrdersTask extends BuildTask {
 			$i++;
 		}
 
+		// If no data do not send to Xero
 		if (empty($invoices)) {
 			return;
 		}
-
-		// SS_Log::log(new Exception(print_r($invoices, true)), SS_Log::NOTICE);
 
 		$invoicesXML = new SimpleXMLElement("<Invoices></Invoices>");
 		$this->arrayToXML($invoices, $invoicesXML);
 		$xml = $invoicesXML->asXML();
 
-		// SS_Log::log(new Exception(print_r($this->prettyPrintXML($xml), true)), SS_Log::NOTICE);
-
 		$response = $xeroConnection->request('POST', $xeroConnection->url('Invoices', 'core'), array(), $xml);
 		if ($xeroConnection->response['code'] == 200) {
 
 			$invoices = $xeroConnection->parseResponse($xeroConnection->response['response'], $xeroConnection->response['format']);
-
 			echo count($invoices->Invoices[0]). " invoice(s) created in this Xero organisation.";
 
-			// SS_Log::log(new Exception(print_r($invoices, true)), SS_Log::NOTICE);
-
+			// Update Orders that have been pushed to Xero so that they are not sent again
 			foreach ($invoices->Invoices->Invoice as $invoice) {
 
-				// Match the invoice number and update XeroInvoiceID so that it is not sent to Xero again
 				$order = Order::get()
 					->filter('ID', str_replace($invoicePrefix, '', $invoice->InvoiceNumber->__toString()))
 					->first();
@@ -193,9 +186,11 @@ class RemoveDevOrdersTask extends BuildTask {
 
 		// TODO: Configuration values
 		$defaultAccountPurchasesCode = '090';
+		$invoicePrefix = 'WEB-';
 
 		$data = array();
-		$orders = Order::get()->where(" \"XeroInvoiceID\" IS NOT NULL");
+		// Creating payments only for orders that have been created on Xero
+		$orders = Order::get()->where(" \"XeroInvoiceID\" IS NOT NULL ");
 		$i = 0;
 
 		if ($orders && $orders->exists()) foreach ($orders as $order) {
@@ -215,43 +210,42 @@ class RemoveDevOrdersTask extends BuildTask {
 						'Code' => $defaultAccountPurchasesCode
 					),
 					'Date' => date('Y-m-d', strtotime($payment->Created)),
-					'Amount' => $payment->Amount->getAmount()
+					'Amount' => $payment->Amount->getAmount(),
+					'Reference' => $invoicePrefix . $payment->ID
 				);
 
 				$i++;
 			}
 		}
 
+		// If no data do not send to Xero
+		if (empty($data)) {
+			return;
+		}
+
 		$paymentsXML = new SimpleXMLElement("<Payments></Payments>");
 		$this->arrayToXML($data, $paymentsXML);
 		$xml = $paymentsXML->asXML();
 
-// 		$xml = "
-// <Payments>
-//   <Payment>
-//     <Invoice>
-//       <InvoiceID>5a88b23d-ea81-4589-a4e1-3be92f3f195e</InvoiceID>
-//     </Invoice>
-//     <Account>
-//       <Code>090</Code>
-//     </Account>
-//     <Date>2014-02-04</Date>
-//     <Amount>72.67</Amount>
-//   </Payment>
-// </Payments>
-// 		";
-
-		SS_Log::log(new Exception(print_r($this->prettyPrintXML($xml), true)), SS_Log::NOTICE);
-
-		SS_Log::log(new Exception(print_r($xeroConnection->url('Payments', 'core'), true)), SS_Log::NOTICE);
-
 		$response = $xeroConnection->request('POST', $xeroConnection->url('Payments', 'core'), array(), $xml);
-
-		SS_Log::log(new Exception(print_r($response, true)), SS_Log::NOTICE);
 
 		if ($xeroConnection->response['code'] == 200) {
 
 			$payments = $xeroConnection->parseResponse($xeroConnection->response['response'], $xeroConnection->response['format']);
+			echo count($payments->Payments[0]). " payments(s) created in this Xero organisation.";
+
+			// Update payments that are sent to Xero so that they are not sent again
+			foreach ($payments->Payments->Payment as $remittance) {
+
+				$payment = Payment::get()
+					->filter('ID', str_replace($invoicePrefix, '', $remittance->Reference->__toString()))
+					->first();
+
+				if ($payment && $payment->exists()) {
+					$payment->XeroPaymentID = $remittance->Reference->__toString();
+					$payment->write();
+				}
+			}
 		}
 		else {
 			echo 'Error: ' . $xeroConnection->response['response'] . PHP_EOL;

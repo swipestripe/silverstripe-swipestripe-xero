@@ -11,3 +11,12 @@ Order:
 Payment:
   extensions:
     - 'XeroExtension_Payment'
+Item:
+  extensions:
+    - 'XeroTaxExtension_Item'
+Modification:
+  extensions:
+    - 'XeroTaxExtension_Modification'
+OrderForm:
+  extensions: 
+    - 'XeroTaxModifierField_Extension'

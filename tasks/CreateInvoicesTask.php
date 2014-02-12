@@ -67,15 +67,10 @@ class RemoveDevOrdersTask extends BuildTask {
 	private function createInvoices($XeroOAuth) {
 
 		$xeroConnection = clone $XeroOAuth;
+		$shopConfig = ShopConfig::current_shop_config();
 
 		// TODO: Configuration values
 		$defaultAccountCode = 200;
-		$defaultTaxType = 'OUTPUT2';
-		$zeroTaxTaype = 'NONE';
-		$taxClasses = array(
-			'FlatFeeTaxModification'
-		);
-		$baseCurrency = 'NZD';
 		$invoicePrefix = 'WEB-';
 
 
@@ -96,7 +91,7 @@ class RemoveDevOrdersTask extends BuildTask {
 				'DueDate' => $order->OrderedOn,
 				'Status' => 'AUTHORISED',
 				'LineAmountTypes' => 'Exclusive',
-				'CurrencyCode' => $baseCurrency
+				'CurrencyCode' => $shopConfig->BaseCurrency
 			);
 
 			// Line items for each item in the order
@@ -115,7 +110,7 @@ class RemoveDevOrdersTask extends BuildTask {
 					'Quantity' => $item->Quantity,
 					'UnitAmount' => $item->Price,
 					'AccountCode' => $defaultAccountCode,
-					'TaxType' => $defaultTaxType
+					'TaxType' => $item->XeroTaxType
 				);
 			}
 
@@ -123,22 +118,13 @@ class RemoveDevOrdersTask extends BuildTask {
 			$modifications = $order->Modifications();
 			if ($modifications && $modifications->exists()) foreach ($modifications as $modification) {
 
-				if ($modification->SubTotalModifier) {
+				if ($modification->XeroTaxType) {
 					$invoices[$i]['Invoice']['LineItems'][]['LineItem'] = array(
 						"Description" => $modification->Description,
 						"Quantity" => 1,
 						"UnitAmount" => $modification->Amount()->getAmount(),
 						"AccountCode" => $defaultAccountCode,
-						'TaxType' => $defaultTaxType
-					);
-				}
-				else if (!in_array(get_class($modification), $taxClasses)) {
-					$invoices[$i]['Invoice']['LineItems'][]['LineItem'] = array(
-						"Description" => $modification->Description,
-						"Quantity" => 1,
-						"UnitAmount" => $modification->Amount()->getAmount(),
-						"AccountCode" => $defaultAccountCode,
-						'TaxType' => $zeroTaxTaype
+						'TaxType' => $modification->XeroTaxType
 					);
 				}
 			}

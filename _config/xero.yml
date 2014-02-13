@@ -1,7 +1,6 @@
 ---
 name: swipestripe_xero
 ---
-
 Customer:
   extensions:
     - 'XeroExtension_Customer'
@@ -20,3 +19,14 @@ Modification:
 OrderForm:
   extensions: 
     - 'XeroTaxModifierField_Extension'
+CreateInvoicesTask:
+  appType: 'Private'
+  oauthCallback: 'oob'
+  userAgent: 'SwipeStripe'
+  consumerKey: ''
+  sharedSecret: ''
+  privateKeyPath: '/assets/privatekey.pem'
+  publicKeyPath: '/assets/publickey.cer'
+  invoicePrefix: 'WEB-'
+  defaultAccountCode: '200'
+  defaultAccountPurchasesCode: '090'

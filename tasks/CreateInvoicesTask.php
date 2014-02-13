@@ -2,7 +2,7 @@
 
 require BASE_PATH . '/swipestripe-xero/thirdparty/XeroOAuth.php';
 
-class RemoveDevOrdersTask extends BuildTask {
+class CreateInvoicesTask extends BuildTask {
 	
 	protected $title = 'Create Xero Invoices';
 	
@@ -10,28 +10,31 @@ class RemoveDevOrdersTask extends BuildTask {
 
 	public function run($request) {
 
-		// TODO: Configuration values
-		define ( "XRO_APP_TYPE", "Private" );
-		define ( "OAUTH_CALLBACK", "oob" );
-		$useragent = "XeroOAuth-PHP Private App Test";
+		$appType = $this->config()->appType;
+		$oauthCallback = $this->config()->oauthCallback;
+		$userAgent = $this->config()->userAgent;
+		$consumerKey = $this->config()->consumerKey;
+		$sharedSecret = $this->config()->sharedSecret;
+		$privateKeyPath = BASE_PATH . $this->config()->privateKeyPath;
+		$publicKeyPath = BASE_PATH . $this->config()->publicKeyPath;
 
 		$signatures = array (
-				'consumer_key' => 'NUKLBKLBL0YZLGTRHGFJXRPFKKSFYO',
-				'shared_secret' => 'PI45UNDNMTDQAD4G7SBAYOEHWBWUMO',
+				'consumer_key' => $consumerKey,
+				'shared_secret' => $sharedSecret,
 				// API versions
 				'core_version' => '2.0',
 				'payroll_version' => '1.0' 
 		);
 
-		if (XRO_APP_TYPE == "Private" || XRO_APP_TYPE == "Partner") {
-			$signatures ['rsa_private_key'] = BASE_PATH . '/assets/privatekey.pem';
-			$signatures ['rsa_public_key'] = BASE_PATH . '/assets/publickey.cer';
+		if ($appType == "Private" || $appType == "Partner") {
+			$signatures ['rsa_private_key'] = $privateKeyPath;
+			$signatures ['rsa_public_key'] = $publicKeyPath;
 		}
 
 		$XeroOAuth = new XeroOAuth ( array_merge ( array (
-			'application_type' => XRO_APP_TYPE,
-			'oauth_callback' => OAUTH_CALLBACK,
-			'user_agent' => $useragent 
+			'application_type' => $appType,
+			'oauth_callback' => $oauthCallback,
+			'user_agent' => $userAgent 
 		), $signatures ) );
 
 		$initialCheck = $XeroOAuth->diagnostics ();
@@ -68,11 +71,8 @@ class RemoveDevOrdersTask extends BuildTask {
 
 		$xeroConnection = clone $XeroOAuth;
 		$shopConfig = ShopConfig::current_shop_config();
-
-		// TODO: Configuration values
-		$defaultAccountCode = 200;
-		$invoicePrefix = 'WEB-';
-
+		$invoicePrefix = $this->config()->invoicePrefix;
+		$defaultAccountCode = $this->config()->defaultAccountCode;
 
 		$invoices = array();
 		// Orders that have not been sent to Xero and are completed
@@ -169,10 +169,8 @@ class RemoveDevOrdersTask extends BuildTask {
 	private function createPayments($XeroOAuth) {
 
 		$xeroConnection = clone $XeroOAuth;
-
-		// TODO: Configuration values
-		$defaultAccountPurchasesCode = '090';
-		$invoicePrefix = 'WEB-';
+		$invoicePrefix = $this->config()->invoicePrefix;
+		$defaultAccountPurchasesCode = $this->config()->defaultAccountPurchasesCode;
 
 		$data = array();
 		// Creating payments only for orders that have been created on Xero

@@ -71,7 +71,7 @@ class XeroTaxCalculator_NZ extends XeroTaxCalculator {
 			$item->XeroTaxRate = 15.00;
 		}
 		else {
-			$item->XeroTaxType = 'ZERORATED';
+			$item->XeroTaxType = 'NONE';
 			$item->XeroTaxRate = 0.00;
 		}
 
@@ -90,7 +90,7 @@ class XeroTaxCalculator_NZ extends XeroTaxCalculator {
 				$mod->XeroTaxRate = 15.00;
 			}
 			else {
-				$mod->XeroTaxType = 'ZERORATED';
+				$mod->XeroTaxType = 'NONE';
 				$mod->XeroTaxRate = 0.00;
 			}
 

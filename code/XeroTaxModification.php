@@ -3,9 +3,9 @@
  * Apply tax rates according to Xero tax types for each Item and Modification in the Order. Uses DI to inject a tax
  * calculator that can be replaced based on the rules for applying tax rates.
  * 
- * Can change the dependencies in yml config file with:
+ * Can change the dependencies in yml config file e.g:
  * ---
- * name: swipestripe_xero_tax
+ * name: mysite_swipestripe_xero
  * ---
  * XeroTaxModification:
  *   dependencies:

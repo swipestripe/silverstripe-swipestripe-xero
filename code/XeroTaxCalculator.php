@@ -59,6 +59,9 @@ abstract class XeroTaxCalculator {
 	}
 }
 
+/**
+ * Apply NZ tax rates to Orders being sent to NZ and no tax to orders shipped elsewhere.
+ */
 class XeroTaxCalculator_NZ extends XeroTaxCalculator {
 
 	public function applyItemTaxRate(Item $item) {

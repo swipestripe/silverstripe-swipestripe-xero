@@ -2,6 +2,9 @@
 
 require BASE_PATH . '/swipestripe-xero/thirdparty/XeroOAuth.php';
 
+/**
+ * Task to create invoices in Xero for corresponding Orders and Payments in SwipeStripe.
+ */
 class CreateInvoicesTask extends BuildTask {
 	
 	protected $title = 'Create Xero Invoices';
@@ -67,6 +70,11 @@ class CreateInvoicesTask extends BuildTask {
 		}
 	}
 
+	/**
+	 * Create invoices by generating XML and sending to Xero.
+	 * 
+	 * @param  XeroOAuth $XeroOAuth Connection to Xero
+	 */
 	private function createInvoices($XeroOAuth) {
 
 		$xeroConnection = clone $XeroOAuth;
@@ -166,6 +174,11 @@ class CreateInvoicesTask extends BuildTask {
 		}
 	}
 
+	/**
+	 * Create payments by generating XML and sending to Xero.
+	 * 
+	 * @param  XeroOAuth $XeroOAuth Connection to Xero
+	 */
 	private function createPayments($XeroOAuth) {
 
 		$xeroConnection = clone $XeroOAuth;
@@ -237,6 +250,12 @@ class CreateInvoicesTask extends BuildTask {
 		}
 	}
 
+	/**
+	 * Helper to generate XML from an array of data.
+	 * 
+	 * @param  Array $data 
+	 * @param  SimpleXMLElement $xml 
+	 */
 	private function arrayToXML($data, &$xml) {
 
 		foreach($data as $key => $value) {
@@ -256,6 +275,12 @@ class CreateInvoicesTask extends BuildTask {
 		}
 	}
 
+	/**
+	 * Helper to print formatted XML, useful for debugging.
+	 * 
+	 * @param  String $xml
+	 * @return String      Nicely formatted XML
+	 */
 	private function prettyPrintXML($xml) {
 
 		$domxml = new DOMDocument('1.0');

@@ -12,6 +12,8 @@ SwipeStripe
 ## Documentation
 Invoices and Payments are created in Xero for completed orders using a build task, they are not sent to Xero more than once. The task is availble via /dev/tasks but potentially this build task could be run on a cron job. Xero tax types and rates can be applied to order items and modifications easily depending on the tax rules for each project using dependency injection.
 
+Documentation for [getting started with Xero](http://developer.xero.com/documentation/getting-started/getting-started-guide/).
+
 ## Installation Instructions
 
 ### Composer
@@ -27,7 +29,7 @@ This module requires quite a lot of configuration (and testing) for each install
 #### API
 You will need to provide the public/private key pair for your Xero account as well as the consumer and shared secret keys. Configuration is set in xero.xml but should be overridden in your mysite/ YAML configuration files e.g:
 
-```
+```yaml
 	---
 	Name: mysite_swipestripe_xero
 	After: '#swipestripe_xero'
@@ -55,7 +57,7 @@ This module has a built in tax module so it will not work with other tax modules
 
 To set up tax rates the first step is to subclass XeroTaxCalculator (e.g: XeroTaxCalculator_NZ). This is where you can decide on how tax rates are applied to each item and modification in the order. Then you need to set your new tax calculator as the dependency for XeroTaxModification in your YAML configuration file e.g:
 
-```
+```yaml
 	---
 	Name: mysite_swipestripe_xero
 	After: '#swipestripe_xero'
@@ -67,6 +69,13 @@ To set up tax rates the first step is to subclass XeroTaxCalculator (e.g: XeroTa
 
 ## Usage Overview
 1. Run the build task to send orders to Xero (this could potentially be set up to run on a cron job)
+
+Very good idea to set up with a Xero Developer account for testing.
+
+## Attribution
+Thanks to:
+
+* [Xero OAuth](https://github.com/XeroAPI/XeroOAuth-PHP)
 
 ## License
 	Copyright (c) 2014, Frank Mullenger

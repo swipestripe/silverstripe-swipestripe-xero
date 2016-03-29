@@ -14,91 +14,93 @@
  *
  * @see http://doc.silverstripe.org/framework/en/reference/injector
  */
-abstract class XeroTaxCalculator {
+abstract class XeroTaxCalculator
+{
 
-	/**
-	 * Apply a tax rate to the Item
-	 * 
-	 * @param  Item   $item
-	 */
-	abstract public function applyItemTaxRate(Item $item);
+    /**
+     * Apply a tax rate to the Item
+     * 
+     * @param  Item   $item
+     */
+    abstract public function applyItemTaxRate(Item $item);
 
-	/**
-	 * Apply a tax rate to the Order Modification
-	 * 
-	 * @param  Modification $mod
-	 */
-	abstract public function applyModificationTaxRate(Modification $mod);
+    /**
+     * Apply a tax rate to the Order Modification
+     * 
+     * @param  Modification $mod
+     */
+    abstract public function applyModificationTaxRate(Modification $mod);
 
-	/**
-	 * Calculate the tax component based on tax rates for the items and modifications in the order
-	 * 
-	 * @param  Order  $order
-	 * @return Price  The tax amount for the order
-	 */
-	public function calculate(Order $order) {
+    /**
+     * Calculate the tax component based on tax rates for the items and modifications in the order
+     * 
+     * @param  Order  $order
+     * @return Price  The tax amount for the order
+     */
+    public function calculate(Order $order)
+    {
+        $taxAmount = 0;
+        $shopConfig = ShopConfig::current_shop_config();
 
-		$taxAmount = 0;
-		$shopConfig = ShopConfig::current_shop_config();
+        $items = $order->Items();
+        if ($items && $items->exists()) {
+            foreach ($items as $item) {
+                $taxAmount += $item->Total()->getAmount() * ($item->XeroTaxRate / 100);
+            }
+        }
 
-		$items = $order->Items();
-		if ($items && $items->exists()) foreach ($items as $item) {
-			$taxAmount += $item->Total()->getAmount() * ($item->XeroTaxRate / 100);
-		}
-
-		$mods = $order->Modifications();
-		if ($mods && $mods->exists()) foreach ($mods as $mod) {
-			$taxAmount += $mod->Amount()->getAmount() * ($mod->XeroTaxRate / 100);
-		}
-		
-		$amount = new Price();
-		$amount->setAmount($taxAmount);
-		$amount->setCurrency($shopConfig->BaseCurrency);
-		$amount->setSymbol($shopConfig->BaseCurrencySymbol);
-		return $amount;
-	}
+        $mods = $order->Modifications();
+        if ($mods && $mods->exists()) {
+            foreach ($mods as $mod) {
+                $taxAmount += $mod->Amount()->getAmount() * ($mod->XeroTaxRate / 100);
+            }
+        }
+        
+        $amount = new Price();
+        $amount->setAmount($taxAmount);
+        $amount->setCurrency($shopConfig->BaseCurrency);
+        $amount->setSymbol($shopConfig->BaseCurrencySymbol);
+        return $amount;
+    }
 }
 
 /**
  * Apply NZ tax rates to Orders being sent to NZ and no tax to orders shipped elsewhere.
  */
-class XeroTaxCalculator_NZ extends XeroTaxCalculator {
+class XeroTaxCalculator_NZ extends XeroTaxCalculator
+{
 
-	public function applyItemTaxRate(Item $item) {
+    public function applyItemTaxRate(Item $item)
+    {
+        $order = $item->Order();
 
-		$order = $item->Order();
+        // Orders shipped within New Zealand have tax applied
+        if ($order && $order->exists() && $order->ShippingCountryCode == 'NZ') {
+            $item->XeroTaxType = 'OUTPUT2';
+            $item->XeroTaxRate = 15.00;
+        } else {
+            $item->XeroTaxType = 'NONE';
+            $item->XeroTaxRate = 0.00;
+        }
 
-		// Orders shipped within New Zealand have tax applied
-		if ($order && $order->exists() && $order->ShippingCountryCode == 'NZ') {
-			$item->XeroTaxType = 'OUTPUT2';
-			$item->XeroTaxRate = 15.00;
-		}
-		else {
-			$item->XeroTaxType = 'NONE';
-			$item->XeroTaxRate = 0.00;
-		}
+        $item->write();
+    }
 
-		$item->write();
-	}
+    public function applyModificationTaxRate(Modification $mod)
+    {
+        if ($mod->SubTotalModifier) {
+            $order = $mod->Order();
 
-	public function applyModificationTaxRate(Modification $mod) {
+            // Orders shipped within New Zealand have tax applied
+            if ($order && $order->exists() && $order->ShippingCountryCode == 'NZ') {
+                $mod->XeroTaxType = 'OUTPUT2';
+                $mod->XeroTaxRate = 15.00;
+            } else {
+                $mod->XeroTaxType = 'NONE';
+                $mod->XeroTaxRate = 0.00;
+            }
 
-		if ($mod->SubTotalModifier) {
-
-			$order = $mod->Order();
-
-			// Orders shipped within New Zealand have tax applied
-			if ($order && $order->exists() && $order->ShippingCountryCode == 'NZ') {
-				$mod->XeroTaxType = 'OUTPUT2';
-				$mod->XeroTaxRate = 15.00;
-			}
-			else {
-				$mod->XeroTaxType = 'NONE';
-				$mod->XeroTaxRate = 0.00;
-			}
-
-			$mod->write();
-		}
-	}
-
+            $mod->write();
+        }
+    }
 }
